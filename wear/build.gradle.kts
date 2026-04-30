@@ -9,7 +9,7 @@ android {
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.example.customvibrationnotifier"
+        applicationId = "com.example.myvibrationproject"
         minSdk = 30   // Wear OS 3 以上
         targetSdk = 34
         versionCode = 1

@@ -1,4 +1,4 @@
-package com.example.customvibrationnotifier
+package com.example.myvibrationproject
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity

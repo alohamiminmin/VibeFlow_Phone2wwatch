@@ -5,11 +5,11 @@ plugins {
 }
 
 android {
-    namespace = "com.example.customvibrationnotifier"
+    namespace = "com.example.myvibrationproject"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.example.customvibrationnotifier"
+        applicationId = "com.example.myvibrationproject"
         minSdk = 26
         targetSdk = 34
         versionCode = 1
@@ -20,6 +20,10 @@ android {
         release {
             isMinifyEnabled = false
         }
+    }
+
+    buildFeatures {
+        compose = true
     }
 
     compileOptions {
@@ -33,9 +37,20 @@ android {
 }
 
 dependencies {
-    implementation("androidx.core:core-ktx:1.12.0")
-    implementation("androidx.appcompat:appcompat:1.6.1")
+    implementation(libs.androidx.core.ktx)
+    implementation(libs.androidx.appcompat)
+    implementation(libs.play.services.wearable)
+    implementation(libs.kotlinx.coroutines.play.services)
 
-    // ★ スマホ → 時計 通信用（必須）
-    implementation("com.google.android.gms:play-services-wearable:18.1.0")
+    // Compose
+    implementation(platform(libs.androidx.compose.bom))
+    implementation(libs.androidx.compose.ui)
+    implementation(libs.androidx.compose.ui.graphics)
+    implementation(libs.androidx.compose.ui.tooling.preview)
+    implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.activity.compose)
+    implementation(libs.androidx.lifecycle.runtime.ktx)
+
+    debugImplementation(libs.androidx.compose.ui.tooling)
+    debugImplementation(libs.androidx.compose.ui.test.manifest)
 }
