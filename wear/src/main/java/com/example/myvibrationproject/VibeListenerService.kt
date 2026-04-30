@@ -26,60 +26,58 @@ class VibeListenerService : WearableListenerService() {
     override fun onMessageReceived(messageEvent: MessageEvent) {
         Log.d(TAG, "Watch受信: path=${messageEvent.path}")
         when {
-            messageEvent.path.startsWith("/vibe/") -> {
-                val patternName = messageEvent.path.removePrefix("/vibe/")
-                Log.d(TAG, "バイブ実行: $patternName")
-
-                // 標準バイブが終わるのを待ってから実行
-                android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-                    triggerVibration(patternName)
-                    Log.d(TAG, "バイブ完了: $patternName")
-                }, 500L)  // 500ms待つ
-            }
-
             messageEvent.path == "/vibe/stop" -> {
                 vibrator.cancel()
+            }
+            messageEvent.path.startsWith("/vibe/") -> {
+                val payload = messageEvent.path.removePrefix("/vibe/")
+                triggerVibration(payload)
             }
         }
     }
 
-    private fun triggerVibration(patternName: String) {
+    private fun triggerVibration(payload: String) {
         vibrator.cancel()
 
-        val effect = when (patternName) {
-
-            // longArrayOf(待機ms, 振動ms, 待機ms, 振動ms, ...)
-            // intArrayOf(  0,    強度,    0,    強度, ...)  ※強度は0〜255
-
-            "call" -> VibrationEffect.createWaveform(
+        val effect = when {
+            payload.startsWith("custom|") -> buildCustomEffect(payload)
+            payload == "none"   -> return
+            payload == "short"  -> VibrationEffect.createOneShot(150, 255)
+            payload == "double" -> VibrationEffect.createWaveform(
+                longArrayOf(0, 150, 120, 150),
+                intArrayOf(0, 255, 0, 255), -1)
+            payload == "long"   -> VibrationEffect.createOneShot(800, 255)
+            payload == "strong" -> VibrationEffect.createWaveform(
+                longArrayOf(0, 200, 100, 200, 100, 200),
+                intArrayOf(0, 255, 0, 255, 0, 255), -1)
+            payload == "call"   -> VibrationEffect.createWaveform(
                 longArrayOf(0, 800, 400, 800, 400, 800),
-                intArrayOf(0, 255, 0, 255, 0, 255),
-                0   // ループ
-            )
-
-            "wechat" -> VibrationEffect.createWaveform(
-                longArrayOf(0, 200, 150, 200),
-                intArrayOf(0, 255, 0, 255),
-                -1
-            )
-
-            "message" -> VibrationEffect.createWaveform(
-                //        待機  振動  待機  振動  待機  振動
-                longArrayOf(0, 300, 150, 300, 150, 600),
-                intArrayOf(0, 255, 0, 255, 0, 255),
-                -1
-            )
-
-            "alert" -> VibrationEffect.createWaveform(
-                longArrayOf(0, 150, 100, 150, 100, 150, 100, 800),
-                intArrayOf(0, 255, 0, 255, 0, 255, 0, 255),
-                -1
-            )
-
-            else -> VibrationEffect.createOneShot(500, 255)
+                intArrayOf(0, 255, 0, 255, 0, 255), 0)
+            else -> VibrationEffect.createOneShot(300, 255)
         }
 
         vibrator.vibrate(effect)
-        Log.d(TAG, "バイブ完了: $patternName")
+        Log.d(TAG, "バイブ完了: $payload")
+    }
+
+    private fun buildCustomEffect(payload: String): VibrationEffect {
+        return try {
+            // "custom|0,300,150,300|0,255,0,255" を分解
+            val parts = payload.split("|")
+            val timings = parts[1].split(",").map { it.trim().toLong() }.toLongArray()
+            val amplitudes = parts[2].split(",").map { it.trim().toInt() }.toIntArray()
+
+            Log.d(TAG, "カスタム: timings=${timings.toList()} amp=${amplitudes.toList()}")
+
+            if (timings.size != amplitudes.size) {
+                Log.e(TAG, "パターンと強度の数が不一致")
+                return VibrationEffect.createOneShot(300, 255)
+            }
+
+            VibrationEffect.createWaveform(timings, amplitudes, -1)
+        } catch (e: Exception) {
+            Log.e(TAG, "カスタムパターン解析エラー: ${e.message}")
+            VibrationEffect.createOneShot(300, 255)
+        }
     }
 }

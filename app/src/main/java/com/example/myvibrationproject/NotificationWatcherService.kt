@@ -18,21 +18,8 @@ class NotificationWatcherService : NotificationListenerService() {
     private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private val TAG = "VibeFlow"
 
-    // 再投稿した通知のIDを記録（無限ループ防止）
-    private val repostedKeys = mutableSetOf<String>()
-
-    // 重複防止用
-    private val recentKeys = mutableSetOf<String>()
-
-    private val appPatternMap = mapOf(
-        "com.tencent.mm"                    to "wechat",
-        "com.android.phone"                 to "call",
-        "com.samsung.android.incallui"      to "call",
-        "com.google.android.dialer"         to "call",
-        "com.google.android.gm"             to "message",
-        "com.google.android.apps.messaging" to "message",
-        "jp.naver.line.android"             to "message",
-    )
+    // パッケージ名→最終処理時刻（重複防止）
+    private val processedPkgs = mutableMapOf<String, Long>()
 
     override fun onListenerConnected() {
         super.onListenerConnected()
@@ -42,32 +29,34 @@ class NotificationWatcherService : NotificationListenerService() {
 
     override fun onNotificationPosted(sbn: StatusBarNotification) {
         val pkg = sbn.packageName
-        Log.d(TAG, "通知受信: pkg=$pkg key=${sbn.key}")
+        val key = sbn.key
+        val now = System.currentTimeMillis()
 
         // 自分のアプリの通知は無視
         if (pkg == applicationContext.packageName) return
 
-        // 重複防止：同じキーは1秒以内に再処理しない
-        val key = sbn.key
-        if (recentKeys.contains(key)) return
-        recentKeys.add(key)
-        scope.launch {
-            kotlinx.coroutines.delay(1000L)
-            recentKeys.remove(key)
-        }
-
-        // 再投稿した通知は無視
-        if (repostedKeys.contains(key)) {
-            repostedKeys.remove(key)
+        // 同じアプリから3秒以内の通知は無視
+        val lastTime = processedPkgs[pkg] ?: 0L
+        if (now - lastTime < 3000L) {
+            Log.d(TAG, "重複スキップ($pkg): ${now - lastTime}ms以内")
             return
         }
 
-        val pattern = appPatternMap[pkg] ?: return
+        val pattern = AppVibeSettings.getPattern(applicationContext, pkg) ?: run {
+            Log.d(TAG, "対象外アプリ: $pkg")
+            return
+        }
+        if (pattern == VibePattern.NONE) return
+
+        // 処理時刻を記録
+        processedPkgs[pkg] = now
+
+        Log.d(TAG, "通知処理開始: pkg=$pkg pattern=${pattern.name} key=$key")
 
         scope.launch(Dispatchers.Main) {
             try {
-                // 元の通知をキャンセル
-                cancelNotification(sbn.key)
+                // 元通知をキャンセル（標準バイブを止める）
+                cancelNotification(key)
                 Log.d(TAG, "元通知キャンセル: $pkg")
 
                 // バイブなし通知として再投稿
@@ -75,8 +64,8 @@ class NotificationWatcherService : NotificationListenerService() {
 
                 // Watch側にカスタムバイブ送信
                 scope.launch(Dispatchers.IO) {
-                    VibeSender.send(applicationContext, pattern)
-                    Log.d(TAG, "パターン送信: $pattern")
+                    VibeSender.send(applicationContext, pkg, pattern)
+                    Log.d(TAG, "カスタムバイブ送信完了: ${pattern.name}")
                 }
 
             } catch (e: Exception) {
@@ -86,7 +75,8 @@ class NotificationWatcherService : NotificationListenerService() {
     }
 
     override fun onNotificationRemoved(sbn: StatusBarNotification) {
-        if (appPatternMap[sbn.packageName] == "call") {
+        val pattern = AppVibeSettings.getPattern(applicationContext, sbn.packageName)
+        if (pattern == VibePattern.CALL) {
             scope.launch(Dispatchers.IO) {
                 VibeSender.stop(applicationContext)
             }
@@ -94,10 +84,8 @@ class NotificationWatcherService : NotificationListenerService() {
     }
 
     private fun repostWithoutVibration(sbn: StatusBarNotification) {
-        val original = sbn.notification
         val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-
-        val extras = original.extras
+        val extras = sbn.notification.extras
         val title = extras.getString(Notification.EXTRA_TITLE) ?: ""
         val text = extras.getCharSequence(Notification.EXTRA_TEXT)?.toString() ?: ""
 
@@ -110,21 +98,21 @@ class NotificationWatcherService : NotificationListenerService() {
             .setAutoCancel(true)
             .build()
 
-        val notifId = sbn.id + 10000
-        repostedKeys.add("$packageName|$notifId|${sbn.uid}")
+        val notifId = (sbn.id.toLong() + 900000L).toInt()
         nm.notify(notifId, newNotification)
-        Log.d(TAG, "バイブなし再投稿完了: $title")
+        Log.d(TAG, "バイブなし再投稿完了: title=$title notifId=$notifId")
     }
 
     private fun setupNotificationChannel() {
         val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        if (nm.getNotificationChannel(CHANNEL_ID) != null) return
         val channel = NotificationChannel(
-            CHANNEL_ID,
-            "VibeFlow通知",
+            CHANNEL_ID, "VibeFlow通知",
             NotificationManager.IMPORTANCE_DEFAULT
         ).apply {
             enableVibration(false)
             vibrationPattern = longArrayOf(0L)
+            setSound(null, null)
         }
         nm.createNotificationChannel(channel)
     }
