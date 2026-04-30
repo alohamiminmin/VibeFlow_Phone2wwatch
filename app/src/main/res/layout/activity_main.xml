@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:padding="24dp">
+
+    <TextView
+        android:id="@+id/tvStatus"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="VibeFlow 起動中"
+        android:textSize="18sp" />
+
+    <TextView
+        android:id="@+id/tvPermission"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="通知アクセス権限を確認中..."
+        android:textSize="14sp" />
+
+    <!-- テスト用ボタン（動作確認後に削除してもOK） -->
+    <Button
+        android:id="@+id/btnTestWechat"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="32dp"
+        android:text="WeChat バイブテスト" />
+
+    <Button
+        android:id="@+id/btnTestCall"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="電話 バイブテスト" />
+
+</LinearLayout>

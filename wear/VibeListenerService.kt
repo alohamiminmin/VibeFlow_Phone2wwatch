@@ -1,6 +1,5 @@
-package com.example.myvibrationproject
+package myvibrationproject
 
-import android.content.Context
 import android.os.Build
 import android.os.VibrationEffect
 import android.os.Vibrator
@@ -12,11 +11,11 @@ class VibeListenerService : WearableListenerService() {
 
     private val vibrator: Vibrator by lazy {
         if (Build.VERSION.SDK_INT >= 31) {
-            (getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager)
+            (getSystemService(VIBRATOR_MANAGER_SERVICE) as VibratorManager)
                 .defaultVibrator
         } else {
             @Suppress("DEPRECATION")
-            getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+            getSystemService(VIBRATOR_SERVICE) as Vibrator
         }
     }
 
