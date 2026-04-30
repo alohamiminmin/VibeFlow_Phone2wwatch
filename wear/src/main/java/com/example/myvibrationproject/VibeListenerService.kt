@@ -36,6 +36,7 @@ class VibeListenerService : WearableListenerService() {
                     Log.d(TAG, "バイブ完了: $patternName")
                 }, 500L)  // 500ms待つ
             }
+
             messageEvent.path == "/vibe/stop" -> {
                 vibrator.cancel()
             }
@@ -44,29 +45,40 @@ class VibeListenerService : WearableListenerService() {
 
     private fun triggerVibration(patternName: String) {
         vibrator.cancel()
+
         val effect = when (patternName) {
+
+            // longArrayOf(待機ms, 振動ms, 待機ms, 振動ms, ...)
+            // intArrayOf(  0,    強度,    0,    強度, ...)  ※強度は0〜255
+
             "call" -> VibrationEffect.createWaveform(
-                longArrayOf(0, 500, 300, 500, 300, 500, 1000),
-                intArrayOf(0, 255, 0, 255, 0, 255, 0),
-                0
+                longArrayOf(0, 800, 400, 800, 400, 800),
+                intArrayOf(0, 255, 0, 255, 0, 255),
+                0   // ループ
             )
+
             "wechat" -> VibrationEffect.createWaveform(
-                longArrayOf(0, 120, 100, 120),
-                intArrayOf(0, 200, 0, 200),
+                longArrayOf(0, 200, 150, 200),
+                intArrayOf(0, 255, 0, 255),
                 -1
             )
+
             "message" -> VibrationEffect.createWaveform(
-                longArrayOf(0, 80, 60, 250),
-                intArrayOf(0, 160, 0, 210),
-                -1
-            )
-            "alert" -> VibrationEffect.createWaveform(
-                longArrayOf(0, 100, 80, 100, 80, 100),
+                //        待機  振動  待機  振動  待機  振動
+                longArrayOf(0, 300, 150, 300, 150, 600),
                 intArrayOf(0, 255, 0, 255, 0, 255),
                 -1
             )
-            else -> VibrationEffect.createOneShot(300, 180)
+
+            "alert" -> VibrationEffect.createWaveform(
+                longArrayOf(0, 150, 100, 150, 100, 150, 100, 800),
+                intArrayOf(0, 255, 0, 255, 0, 255, 0, 255),
+                -1
+            )
+
+            else -> VibrationEffect.createOneShot(500, 255)
         }
+
         vibrator.vibrate(effect)
         Log.d(TAG, "バイブ完了: $patternName")
     }
