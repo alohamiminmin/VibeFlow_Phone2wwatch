@@ -2,6 +2,8 @@ package com.example.myvibrationproject
 
 import android.content.Context
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
@@ -12,6 +14,7 @@ import com.google.android.gms.wearable.WearableListenerService
 class VibeListenerService : WearableListenerService() {
 
     private val TAG = "VibeFlow"
+    private val handler = Handler(Looper.getMainLooper())
 
     private val vibrator: Vibrator by lazy {
         if (Build.VERSION.SDK_INT >= 31) {
@@ -27,11 +30,15 @@ class VibeListenerService : WearableListenerService() {
         Log.d(TAG, "Watch受信: path=${messageEvent.path}")
         when {
             messageEvent.path == "/vibe/stop" -> {
+                handler.removeCallbacksAndMessages(null)
                 vibrator.cancel()
             }
             messageEvent.path.startsWith("/vibe/") -> {
                 val payload = messageEvent.path.removePrefix("/vibe/")
-                triggerVibration(payload)
+                // 標準バイブが終わる300ms後にカスタムバイブ実行
+                handler.postDelayed({
+                    triggerVibration(payload)
+                }, 800L)
             }
         }
     }
@@ -62,7 +69,6 @@ class VibeListenerService : WearableListenerService() {
 
     private fun buildCustomEffect(payload: String): VibrationEffect {
         return try {
-            // "custom|0,300,150,300|0,255,0,255" を分解
             val parts = payload.split("|")
             val timings = parts[1].split(",").map { it.trim().toLong() }.toLongArray()
             val amplitudes = parts[2].split(",").map { it.trim().toInt() }.toIntArray()

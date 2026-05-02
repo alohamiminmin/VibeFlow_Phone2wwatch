@@ -8,6 +8,7 @@ object AppVibeSettings {
     private const val PREF_NAME = "app_vibe_settings"
     private const val PREF_CUSTOM_PATTERN = "custom_pattern_"
     private const val PREF_CUSTOM_AMPLITUDE = "custom_amplitude_"
+    private const val PREF_CANDIDATES = "candidates"
 
     fun setPattern(context: Context, packageName: String, pattern: VibePattern) {
         getPrefs(context).edit().putString(packageName, pattern.name).apply()
@@ -20,11 +21,15 @@ object AppVibeSettings {
 
     fun getAllSettings(context: Context): Map<String, VibePattern> {
         return getPrefs(context).all
-            .filter { !it.key.startsWith(PREF_CUSTOM_PATTERN)
-                    && !it.key.startsWith(PREF_CUSTOM_AMPLITUDE) }
+            .filter { (key, _) ->
+                !key.startsWith(PREF_CUSTOM_PATTERN) &&
+                        !key.startsWith(PREF_CUSTOM_AMPLITUDE) &&
+                        key != PREF_CANDIDATES
+            }
             .mapNotNull { (pkg, value) ->
+                if (value !is String) return@mapNotNull null
                 val pattern = runCatching {
-                    VibePattern.valueOf(value as String)
+                    VibePattern.valueOf(value)
                 }.getOrNull() ?: return@mapNotNull null
                 pkg to pattern
             }.toMap()
@@ -38,7 +43,6 @@ object AppVibeSettings {
             .apply()
     }
 
-    // カスタムパターン（ms配列を文字列で保存）
     fun setCustomPattern(context: Context, packageName: String, pattern: String) {
         getPrefs(context).edit()
             .putString(PREF_CUSTOM_PATTERN + packageName, pattern).apply()
@@ -48,7 +52,6 @@ object AppVibeSettings {
         return getPrefs(context).getString(PREF_CUSTOM_PATTERN + packageName, null)
     }
 
-    // カスタム強度（0〜255の配列を文字列で保存）
     fun setCustomAmplitude(context: Context, packageName: String, amplitude: String) {
         getPrefs(context).edit()
             .putString(PREF_CUSTOM_AMPLITUDE + packageName, amplitude).apply()
@@ -56,6 +59,26 @@ object AppVibeSettings {
 
     fun getCustomAmplitude(context: Context, packageName: String): String? {
         return getPrefs(context).getString(PREF_CUSTOM_AMPLITUDE + packageName, null)
+    }
+
+    fun addCandidate(context: Context, packageName: String) {
+        val current = getCandidates(context).toMutableSet()
+        current.add(packageName)
+        getPrefs(context).edit()
+            .putStringSet(PREF_CANDIDATES, current)
+            .apply()
+    }
+
+    fun getCandidates(context: Context): Set<String> {
+        return getPrefs(context).getStringSet(PREF_CANDIDATES, emptySet()) ?: emptySet()
+    }
+
+    fun removeCandidate(context: Context, packageName: String) {
+        val current = getCandidates(context).toMutableSet()
+        current.remove(packageName)
+        getPrefs(context).edit()
+            .putStringSet(PREF_CANDIDATES, current)
+            .apply()
     }
 
     private fun getPrefs(context: Context): SharedPreferences {
