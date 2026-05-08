@@ -7,5 +7,6 @@ enum class VibePattern(val displayName: String) {
     LONG("長く1回"),
     STRONG("強く3回"),
     CALL("電話パターン（ループ）"),
+    WECHAT("WeChat（トントン）"),  // ← 追加
     CUSTOM("カスタム")
 }

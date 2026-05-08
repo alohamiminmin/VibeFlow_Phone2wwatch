@@ -13,21 +13,21 @@ object VibeSender {
         try {
             val nodes = Wearable.getNodeClient(context).connectedNodes.await()
             Log.d(TAG, "接続中のWatch数: ${nodes.size}")
-            if (nodes.isEmpty()) {
-                Log.w(TAG, "Watchが見つかりません")
-                return
-            }
+            if (nodes.isEmpty()) return
 
-            // パスを組み立てる
             val path = when (pattern) {
+                VibePattern.CALL   -> "/vibe/call"
+                VibePattern.WECHAT -> "/vibe/wechat"
+                VibePattern.DOUBLE -> "/vibe/double"
+                VibePattern.SHORT  -> "/vibe/short"
+                VibePattern.LONG   -> "/vibe/long"
+                VibePattern.STRONG -> "/vibe/strong"
+                VibePattern.NONE   -> return
                 VibePattern.CUSTOM -> {
-                    // カスタムの場合はパターンデータをパスに含める
                     val p = AppVibeSettings.getCustomPattern(context, pkg) ?: "0,300,150,300,150,600"
                     val a = AppVibeSettings.getCustomAmplitude(context, pkg) ?: "0,255,0,255,0,255"
                     "/vibe/custom|$p|$a"
                 }
-                VibePattern.NONE -> return
-                else -> "/vibe/${pattern.name.lowercase()}"
             }
 
             nodes.forEach { node ->
@@ -41,7 +41,6 @@ object VibeSender {
             Log.e(TAG, "送信エラー: ${e.message}")
         }
     }
-
     suspend fun stop(context: Context) {
         try {
             val nodes = Wearable.getNodeClient(context).connectedNodes.await()

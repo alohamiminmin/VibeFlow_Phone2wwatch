@@ -4,11 +4,7 @@ import android.app.Activity
 import android.app.AlertDialog
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.graphics.Bitmap
-import android.graphics.Canvas
 import android.graphics.Typeface
-import android.graphics.drawable.BitmapDrawable
-import android.graphics.drawable.Drawable
 import android.os.Bundle
 import android.provider.Settings
 import android.text.Editable
@@ -97,6 +93,15 @@ class MainActivity : Activity() {
 
         selectedApps.putAll(AppVibeSettings.getAllSettings(this))
         refreshList()
+
+        // 通知権限リクエスト（Android 13以上）
+        if (android.os.Build.VERSION.SDK_INT >= 33) {
+            if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)
+                != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(
+                    arrayOf(android.Manifest.permission.POST_NOTIFICATIONS), 1001)
+            }
+        }
     }
 
     override fun onResume() {
@@ -107,7 +112,6 @@ class MainActivity : Activity() {
     private fun showAppPicker() {
         val pm = packageManager
 
-        // フィルタなし・全アプリ表示
         val allApps = pm.getInstalledApplications(PackageManager.GET_META_DATA)
             .sortedBy { pm.getApplicationLabel(it).toString() }
             .toMutableList()

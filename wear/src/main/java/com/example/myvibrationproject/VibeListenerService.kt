@@ -35,7 +35,7 @@ class VibeListenerService : WearableListenerService() {
             }
             messageEvent.path.startsWith("/vibe/") -> {
                 val payload = messageEvent.path.removePrefix("/vibe/")
-                // 標準バイブが終わる300ms後にカスタムバイブ実行
+                // 標準バイブが終わる800ms後にカスタムバイブ実行
                 handler.postDelayed({
                     triggerVibration(payload)
                 }, 800L)
@@ -60,6 +60,11 @@ class VibeListenerService : WearableListenerService() {
             payload == "call"   -> VibrationEffect.createWaveform(
                 longArrayOf(0, 800, 400, 800, 400, 800),
                 intArrayOf(0, 255, 0, 255, 0, 255), 0)
+
+            payload == "wechat" -> VibrationEffect.createWaveform(
+                longArrayOf(0, 120, 100, 120),
+                intArrayOf(0, 200, 0, 200), -1)
+
             else -> VibrationEffect.createOneShot(300, 255)
         }
 

@@ -1,11 +1,21 @@
 package com.example.myvibrationproject
 
+import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.content.BroadcastReceiver
 import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.drawable.BitmapDrawable
+import android.graphics.drawable.Drawable
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import android.util.Log
+import androidx.core.app.NotificationCompat
+import androidx.core.graphics.drawable.IconCompat
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -17,9 +27,39 @@ class NotificationWatcherService : NotificationListenerService() {
     private val TAG = "VibeFlow"
     private val processedPkgs = mutableMapOf<String, Long>()
 
+    // iPhone通知のBroadcast受信
+    private val iphoneReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            val type = intent.getStringExtra("type") ?: "message"
+            val pattern = when (type) {
+                "call"   -> VibePattern.CALL
+                "wechat" -> VibePattern.WECHAT
+                else     -> VibePattern.DOUBLE
+            }
+            Log.d(TAG, "iPhone Broadcast受信: type=$type pattern=${pattern.name}")
+            scope.launch {
+                VibeSender.send(applicationContext, "iphone", pattern)
+                Log.d(TAG, "Watch送信完了: ${pattern.name}")
+            }
+        }
+    }
+
     override fun onListenerConnected() {
         super.onListenerConnected()
         Log.d(TAG, "NotificationWatcherService: 接続OK")
+
+        // iPhone通知のBroadcast受信を登録
+        val filter = IntentFilter("com.example.myvibrationproject.IPHONE_NOTIFY")
+        registerReceiver(iphoneReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+    }
+
+    override fun onListenerDisconnected() {
+        super.onListenerDisconnected()
+        try {
+            unregisterReceiver(iphoneReceiver)
+        } catch (e: Exception) {
+            Log.e(TAG, "unregisterReceiver失敗: ${e.message}")
+        }
     }
 
     override fun onNotificationPosted(sbn: StatusBarNotification) {
@@ -48,9 +88,7 @@ class NotificationWatcherService : NotificationListenerService() {
 
         Log.d(TAG, "通知処理開始: pkg=$pkg pattern=${pattern.name}")
 
-        // cancelなし・通知テキストはそのまま残す
-        // カスタムバイブだけWatchに送信
-        scope.launch(Dispatchers.IO) {
+        scope.launch {
             VibeSender.send(applicationContext, pkg, pattern)
             Log.d(TAG, "カスタムバイブ送信完了: ${pattern.name}")
         }
