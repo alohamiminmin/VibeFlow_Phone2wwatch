@@ -13,21 +13,22 @@ object VibeSender {
         try {
             val nodes = Wearable.getNodeClient(context).connectedNodes.await()
             Log.d(TAG, "接続中のWatch数: ${nodes.size}")
-            if (nodes.isEmpty()) return
+            if (nodes.isEmpty()) {
+                Log.w(TAG, "Watchが見つかりません")
+                return
+            }
+
+            // 遅延時間を取得
+            val delayMs = AppVibeSettings.getDelay(context, pkg)
 
             val path = when (pattern) {
-                VibePattern.CALL   -> "/vibe/call"
-                VibePattern.WECHAT -> "/vibe/wechat"
-                VibePattern.DOUBLE -> "/vibe/double"
-                VibePattern.SHORT  -> "/vibe/short"
-                VibePattern.LONG   -> "/vibe/long"
-                VibePattern.STRONG -> "/vibe/strong"
                 VibePattern.NONE   -> return
                 VibePattern.CUSTOM -> {
                     val p = AppVibeSettings.getCustomPattern(context, pkg) ?: "0,300,150,300,150,600"
                     val a = AppVibeSettings.getCustomAmplitude(context, pkg) ?: "0,255,0,255,0,255"
-                    "/vibe/custom|$p|$a"
+                    "/vibe/custom|$p|$a?delay=$delayMs"
                 }
+                else -> "/vibe/${pattern.name.lowercase()}?delay=$delayMs"
             }
 
             nodes.forEach { node ->
@@ -41,6 +42,7 @@ object VibeSender {
             Log.e(TAG, "送信エラー: ${e.message}")
         }
     }
+
     suspend fun stop(context: Context) {
         try {
             val nodes = Wearable.getNodeClient(context).connectedNodes.await()

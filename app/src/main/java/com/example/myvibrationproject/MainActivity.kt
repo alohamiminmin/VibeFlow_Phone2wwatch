@@ -387,9 +387,43 @@ class MainActivity : Activity() {
 
             patternRow.addView(spinner)
             card.addView(patternRow)
-            card.addView(customArea)
+
+            // ↓ 遅延設定エリアをここに追加（customAreaの前）
+            val delayRow = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = android.view.Gravity.CENTER_VERTICAL
+                setPadding(0, 8, 0, 0)
+            }
+            delayRow.addView(TextView(this).apply {
+                text = "遅延(ms)："
+                textSize = 13f
+                setTextColor(0xFF444444.toInt())
+            })
+            val delayInput = EditText(this).apply {
+                hint = "800"
+                textSize = 13f
+                inputType = android.text.InputType.TYPE_CLASS_NUMBER
+                setText(AppVibeSettings.getDelay(this@MainActivity, pkg).toString())
+                layoutParams = LinearLayout.LayoutParams(
+                    0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            }
+            delayRow.addView(delayInput)
+            delayRow.addView(Button(this).apply {
+                text = "保存"
+                textSize = 11f
+                setTextColor(0xFFFFFFFF.toInt())
+                setBackgroundColor(0xFF1976D2.toInt())
+                setOnClickListener {
+                    val delay = delayInput.text.toString().toLongOrNull() ?: 800L
+                    AppVibeSettings.setDelay(this@MainActivity, pkg, delay)
+                    Toast.makeText(this@MainActivity, "遅延 ${delay}ms 保存しました",
+                        Toast.LENGTH_SHORT).show()
+                }
+            })
+            card.addView(delayRow)  // ← delayRowをcardに追加
+            card.addView(customArea) // ← 既存のこの行はそのまま
             listLayout.addView(card)
-        }
+        }  // ← selectedApps.forEachの閉じ括弧
     }
 
     private fun buildCustomArea(pkg: String, currentPattern: VibePattern): LinearLayout {

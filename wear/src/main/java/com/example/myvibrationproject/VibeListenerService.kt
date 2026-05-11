@@ -34,11 +34,22 @@ class VibeListenerService : WearableListenerService() {
                 vibrator.cancel()
             }
             messageEvent.path.startsWith("/vibe/") -> {
-                val payload = messageEvent.path.removePrefix("/vibe/")
-                // 標準バイブが終わる800ms後にカスタムバイブ実行
+                val fullPath = messageEvent.path.removePrefix("/vibe/")
+
+                // delayを抽出
+                val delayMs = if (fullPath.contains("?delay=")) {
+                    fullPath.substringAfter("?delay=").toLongOrNull() ?: 800L
+                } else 800L
+
+                val payload = if (fullPath.contains("?delay=")) {
+                    fullPath.substringBefore("?delay=")
+                } else fullPath
+
+                Log.d(TAG, "バイブ予定: payload=$payload delay=${delayMs}ms")
+
                 handler.postDelayed({
                     triggerVibration(payload)
-                }, 800L)
+                }, delayMs)
             }
         }
     }

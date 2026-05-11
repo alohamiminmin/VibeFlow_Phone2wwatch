@@ -84,4 +84,18 @@ object AppVibeSettings {
     private fun getPrefs(context: Context): SharedPreferences {
         return context.getSharedPreferences(PREF_NAME, Context.MODE_PRIVATE)
     }
+
+    private const val PREF_DELAY = "delay_"
+    private const val DEFAULT_DELAY = 800L
+
+    fun setDelay(context: Context, packageName: String, delayMs: Long) {
+        getPrefs(context).edit()
+            .putLong(PREF_DELAY + packageName, delayMs)
+            .apply()
+    }
+
+    fun getDelay(context: Context, packageName: String): Long {
+        return getPrefs(context).getLong(PREF_DELAY + packageName, DEFAULT_DELAY)
+    }
+
 }
