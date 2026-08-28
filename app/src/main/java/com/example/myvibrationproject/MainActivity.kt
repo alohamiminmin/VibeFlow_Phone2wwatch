@@ -466,14 +466,29 @@ class MainActivity : Activity() {
                 setOnClickListener {
                     val p = patternInput.text.toString().trim()
                     val a = amplitudeInput.text.toString().trim()
-                    val pCount = p.split(",").size
-                    val aCount = a.split(",").size
-                    if (pCount != aCount) {
+
+                    val timings = p.split(",").map { it.trim().toLongOrNull() }
+                    val amplitudes = a.split(",").map { it.trim().toIntOrNull() }
+
+                    if (timings.size != amplitudes.size) {
                         Toast.makeText(this@MainActivity,
-                            "パターンと強度の数を揃えてください（$pCount vs $aCount）",
+                            "パターンと強度の数を揃えてください（${timings.size} vs ${amplitudes.size}）",
                             Toast.LENGTH_LONG).show()
                         return@setOnClickListener
                     }
+                    if (timings.any { it == null || it < 0 }) {
+                        Toast.makeText(this@MainActivity,
+                            "パターンには0以上の整数だけを、カンマ区切りで入力してください",
+                            Toast.LENGTH_LONG).show()
+                        return@setOnClickListener
+                    }
+                    if (amplitudes.any { it == null || it !in 0..255 }) {
+                        Toast.makeText(this@MainActivity,
+                            "強度には0〜255の整数だけを、カンマ区切りで入力してください",
+                            Toast.LENGTH_LONG).show()
+                        return@setOnClickListener
+                    }
+
                     AppVibeSettings.setCustomPattern(this@MainActivity, pkg, p)
                     AppVibeSettings.setCustomAmplitude(this@MainActivity, pkg, a)
                     Toast.makeText(this@MainActivity, "✅ 保存しました", Toast.LENGTH_SHORT).show()
