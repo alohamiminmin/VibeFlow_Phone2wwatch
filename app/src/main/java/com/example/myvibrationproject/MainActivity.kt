@@ -16,6 +16,7 @@ class MainActivity : Activity() {
 
     private val selectedApps = mutableMapOf<String, VibePattern>()
     private lateinit var listLayout: LinearLayout
+    private lateinit var permBtn: Button
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -55,7 +56,7 @@ class MainActivity : Activity() {
         root.addView(header)
 
         // 権限ボタン
-        val permBtn = Button(this).apply {
+        permBtn = Button(this).apply {
             updatePermissionButton(this)
             setOnClickListener {
                 startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
@@ -106,6 +107,7 @@ class MainActivity : Activity() {
 
     override fun onResume() {
         super.onResume()
+        updatePermissionButton(permBtn)
         refreshList()
     }
 
