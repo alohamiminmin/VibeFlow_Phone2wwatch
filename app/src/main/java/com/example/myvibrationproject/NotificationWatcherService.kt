@@ -61,7 +61,6 @@ class NotificationWatcherService : NotificationListenerService() {
             Log.e(TAG, "unregisterReceiver失敗: ${e.message}")
         }
     }
-0
     override fun onNotificationPosted(sbn: StatusBarNotification) {
         val pkg = sbn.packageName
         val now = System.currentTimeMillis()
